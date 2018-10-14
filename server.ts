@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const jwt = require('express-jwt');
 const jwksRsa = require('jwks-rsa');
+require('dotenv').config();
 
 // define the Express app
 const app = express();
@@ -117,6 +118,24 @@ app.post('/answer/:id', checkJwt, (req, res) => {
 // });
 
 // start the server
-app.listen(8081, () => {
-  console.log('listening on port 8081');
+const port = normalizePort(process.env.PORT);
+
+app.listen(port, () => {
+  console.log(`listening on port ${port}`);
 });
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+  return false;
+}
