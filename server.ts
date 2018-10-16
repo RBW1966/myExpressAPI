@@ -26,8 +26,22 @@ app.use(cors());
 // log HTTP requests
 app.use(morgan('combined'));
 
+const checkJwt = jwt({
+  secret: jwksRsa.expressJwtSecret({
+    cache: true,
+    rateLimit: true,
+    jwksRequestsPerMinute: 5,
+    jwksUri: 'https://rbw-test.auth0.com/.well-known/jwks.json'
+  }),
+
+  // Validate the audience and the issuer.
+  //audience: 'http://myExpressAPI',
+  issuer: 'https://rbw-test.auth0.com/',
+  algorithms: ['RS256']
+});
+
 // retrieve all questions
-app.get('/', (req, res) => {
+app.get('/', checkJwt, (req, res) => {
   const qs = questions.map(q => ({
     id: q.id,
     title: q.title,
@@ -45,65 +59,23 @@ app.get('/:id', (req, res) => {
   res.send(question[0]);
 });
 
-const checkJwt = jwt({
-  secret: jwksRsa.expressJwtSecret({
-    cache: true,
-    rateLimit: true,
-    jwksRequestsPerMinute: 5,
-    jwksUri: `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`
-  }),
-
-  // Validate the audience and the issuer.
-  audience: `${process.env.AUTH0_CLIENT_ID}`,
-  issuer: `https://${process.env.AUTH0_DOMAIN}/`,
-  algorithms: ['RS256']
-});
-
-// // insert a new question
-// app.post('/', checkJwt, (req, res) => {
-//   const {title, description} = req.body;
-//   const newQuestion = {
-//     id: questions.length + 1,
-//     title,
-//     description,
-//     answers: [],
-//     author: req.user.name,
-//   };
-//   questions.push(newQuestion);
-//   res.status(200).send();
-// });
-
-// // insert a new answer to a question
-// app.post('/answer/:id', checkJwt, (req, res) => {
-//   const {answer} = req.body;
-
-//   const question = questions.filter(q => (q.id === parseInt(req.params.id)));
-//   if (question.length > 1) return res.status(500).send();
-//   if (question.length === 0) return res.status(404).send();
-
-//   question[0].answers.push({
-//     answer,
-//     author: req.user.name,
-//   });
-
-//   res.status(200).send();
-// });
-
 // insert a new question
-app.post('/', (req, res) => {
+app.post('/', checkJwt, (req, res) => {
   const {title, description} = req.body;
   const newQuestion = {
     id: questions.length + 1,
     title,
     description,
     answers: [],
+    author: req.user.name,
   };
   questions.push(newQuestion);
   res.status(200).send();
 });
 
 // insert a new answer to a question
-app.post('/answer/:id', (req, res) => {
+app.post('/answer/:id', checkJwt, (req, res) => {
+  console.log(req.body);
   const {answer} = req.body;
 
   const question = questions.filter(q => (q.id === parseInt(req.params.id)));
@@ -112,10 +84,39 @@ app.post('/answer/:id', (req, res) => {
 
   question[0].answers.push({
     answer,
+    author: req.user.name,
   });
 
   res.status(200).send();
 });
+
+// // insert a new question
+// app.post('/', (req, res) => {
+//   const {title, description} = req.body;
+//   const newQuestion = {
+//     id: questions.length + 1,
+//     title,
+//     description,
+//     answers: [],
+//   };
+//   questions.push(newQuestion);
+//   res.status(200).send();
+// });
+
+// // insert a new answer to a question
+// app.post('/answer/:id', (req, res) => {
+//   const {answer} = req.body;
+
+//   const question = questions.filter(q => (q.id === parseInt(req.params.id)));
+//   if (question.length > 1) return res.status(500).send();
+//   if (question.length === 0) return res.status(404).send();
+
+//   question[0].answers.push({
+//     answer,
+//   });
+
+//   res.status(200).send();
+// });
 
 // start the server
 const port = normalizePort(process.env.PORT);
