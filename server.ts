@@ -1,3 +1,5 @@
+import { json } from "express";
+
 //import dependencies
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -12,7 +14,7 @@ require('dotenv').config();
 const app = express();
 
 // the database
-const questions = [{id: 1, title: "fred", answers: ["Yes", "No"], description: "Fred Desc"},{id: 2, title: "joe", answers: ["Yes", "No"], description: "Joe Desc"}];
+const questions = [{id: 1, title: "Do you like turtles?", answers: [ "Yes", "No", "Maybe"], description: "Fred Desc", author: "Amy J"},{id: 2, title: "Should I stop eating food?", answers: ["Yes", "No", "Hell no"], description: "Joe Desc", author: "Linda M"}];
 
 // enhance your app security with Helmet
 app.use(helmet());
@@ -35,7 +37,7 @@ const checkJwt = jwt({
   }),
 
   // Validate the audience and the issuer.
-  //audience: 'http://myExpressAPI',
+  // audience: 'http://myExpressAPI',
   issuer: 'https://rbw-test.auth0.com/',
   algorithms: ['RS256']
 });
@@ -46,11 +48,11 @@ app.get('/', checkJwt, (req, res) => {
     id: q.id,
     title: q.title,
     description: q.description,
-    answers: q.answers.length,
+    answers: q.answers,
+    author: q.author,
   }));
   res.send(qs);
 });
-
 // get a specific question
 app.get('/:id', (req, res) => {
   const question = questions.filter(q => (q.id === parseInt(req.params.id)));
@@ -82,10 +84,7 @@ app.post('/answer/:id', checkJwt, (req, res) => {
   if (question.length > 1) return res.status(500).send();
   if (question.length === 0) return res.status(404).send();
 
-  question[0].answers.push({
-    answer,
-    author: req.user.name,
-  });
+  question[0].answers.push(answer);
 
   res.status(200).send();
 });
